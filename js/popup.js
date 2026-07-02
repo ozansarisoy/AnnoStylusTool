@@ -7,14 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const peerIdEl = document.getElementById('peerId');
   const mobileStatus = document.getElementById('mobileStatus');
   const openCameraHubBtn = document.getElementById('openCameraHub');
-  const openMobileLink = document.getElementById('openMobileLink');
 
   let isDrawingEnabled = false;
   let peer = null;
-
-  // Set the Mobile link href to the local extension file (or they can use it elsewhere)
-  openMobileLink.href = chrome.runtime.getURL('mobile/index.html');
-  openMobileLink.target = '_blank';
 
   // Toggle Drawing Mode
   toggleBtn.addEventListener('click', async () => {
@@ -151,13 +146,21 @@ document.addEventListener('DOMContentLoaded', () => {
       mobileIdDisplay.style.display = 'block';
       peerIdEl.textContent = id;
       
-      // We will use a placeholder hosted URL. For production, replace this with your actual domain.
-      const HOSTED_URL = 'https://ast-remote.vercel.app/'; 
+      // We use the GitHub Pages URL for the mobile remote app
+      const HOSTED_URL = 'https://ozansarisoy.github.io/AnnoStylusTool/mobile/'; 
       const connectUrl = `${HOSTED_URL}?id=${id}`;
       
       // Generate QR Code pointing to the URL with the auto-connect ID
-      const qrImage = document.getElementById('mobileQrCode');
-      qrImage.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(connectUrl)}`;
+      const qrContainer = document.getElementById('mobileQrCode');
+      qrContainer.innerHTML = ''; // clear previous if any
+      new QRCode(qrContainer, {
+        text: connectUrl,
+        width: 120,
+        height: 120,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.L
+      });
     });
 
     peer.on('connection', (conn) => {

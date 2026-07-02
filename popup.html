@@ -75,7 +75,7 @@
     <button id="connectMobile" class="btn secondary">Generate Mobile ID</button>
     <div id="mobileIdDisplay" class="info-box hidden">
       <p class="qr-title">Scan to Connect:</p>
-      <img id="mobileQrCode" src="" alt="QR Code" class="qr-image" />
+      <div id="mobileQrCode" class="qr-image" style="display:flex; justify-content:center; align-items:center;"></div>
       <p class="manual-id-title">Manual ID:</p>
       <strong id="peerId" class="manual-id-text">...</strong>
       <p class="mobile-link-hint host-hint">(Or host the `mobile/` folder online and set the URL in code)</p>
@@ -88,6 +88,8 @@
     <button id="openCameraHub" class="btn secondary">Open Camera Hub</button>
   </div>
 
+  <script src="js/peerjs.min.js"></script>
+  <script src="js/qrcode.min.js"></script>
   <script src="js/popup.js"></script>
 </body>
 </html>
