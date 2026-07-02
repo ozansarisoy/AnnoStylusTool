@@ -1,0 +1,6 @@
+/* CSS for AST overlay */
+#ast-overlay {
+  /* Ensuring it's always on top and ignores clicks when disabled is handled via JS */
+  z-index: 2147483647 !important; /* Max z-index */
+  transition: opacity 0.3s;
+}

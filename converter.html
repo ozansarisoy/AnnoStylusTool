@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AST Video Converter</title>
+  <script src="lib/ffmpeg.js"></script>
+  <style>
+    body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #2c3e50; color: white; }
+    .progress-bar { width: 80%; height: 20px; background: #34495e; border-radius: 10px; overflow: hidden; margin-top: 20px; }
+    .progress-fill { width: 0%; height: 100%; background: #3498db; transition: width 0.2s; }
+  </style>
+</head>
+<body>
+  <h2>Converting Video...</h2>
+  <div id="status">Initializing FFmpeg...</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+
+  <script src="converter.js"></script>
+</body>
+</html>

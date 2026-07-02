@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anno Stylus Tool</title>
+  <link rel="stylesheet" href="css/popup.css">
+  <script src="js/peerjs.min.js"></script>
+</head>
+<body>
+  <div class="header">
+    <img src="icons/icon128.png" alt="AST Logo">
+    <h1>Anno Stylus Tool</h1>
+  </div>
+
+  <div class="main-controls">
+    <button id="toggleDrawing" class="btn primary" title="Shortcut: Esc">Enable Drawing</button>
+  </div>
+
+  <div class="tools-panel hidden" id="toolsPanel">
+    <h3>Tools</h3>
+    <div class="tool-buttons">
+      <button class="tool-btn active" data-tool="pen" title="Pen (P)">🖊️</button>
+      <button class="tool-btn" data-tool="highlight" title="Highlighter (H)">🖍️</button>
+      <button class="tool-btn" data-tool="rect" title="Rectangle (R)">⬛</button>
+      <button class="tool-btn" data-tool="circle" title="Circle (C)">🔴</button>
+      <button class="tool-btn" data-tool="eraser" title="Eraser (E)">🧹</button>
+      <button class="tool-btn" data-tool="spotlight" title="Spotlight Mode (S)">🔦</button>
+      <button class="tool-btn" data-tool="laser" title="Laser Pointer (L)">🔴</button>
+    </div>
+    
+    <div class="colors">
+      <div class="color-swatch color-red active" data-color="#e74c3c"></div>
+      <div class="color-swatch color-blue" data-color="#3498db"></div>
+      <div class="color-swatch color-green" data-color="#2ecc71"></div>
+      <div class="color-swatch color-yellow" data-color="#f1c40f"></div>
+      <div class="color-swatch color-black" data-color="#000000"></div>
+    </div>
+    <button id="clearCanvas" class="btn secondary">Clear Canvas</button>
+  </div>
+
+  <div class="workflow-controls hidden" id="workflowControls">
+    <h3>Workflow</h3>
+    <div class="export-title">Export:</div>
+    <div class="workflow-group">
+      <button id="exportJson" class="btn secondary flex-btn" title="Export as JSON (Editable)">JSON</button>
+      <button id="exportPng" class="btn secondary flex-btn" title="Export as PNG Image">PNG</button>
+      <button id="exportSvg" class="btn secondary flex-btn" title="Export as Vector SVG">SVG</button>
+    </div>
+    <div class="export-title">Import & Tools:</div>
+    <div class="workflow-group">
+      <input type="file" id="importJsonFile" accept=".json" class="hidden" title="Import JSON File">
+      <button id="importJsonBtn" class="btn secondary flex-btn">Import (JSON)</button>
+      <button id="captureScreenshot" class="btn primary flex-btn">Screenshot 📋</button>
+    </div>
+    <div class="workflow-group">
+      <select id="videoFormat" class="btn secondary flex-btn" title="Select Video Format">
+        <option value="webm">WebM (Default)</option>
+        <option value="mp4">MP4</option>
+        <option value="mov">MOV</option>
+        <option value="mp3">MP3 (Audio Only)</option>
+        <option value="wav">WAV (Audio Only)</option>
+      </select>
+      <button id="recordScreen" class="btn secondary btn-danger flex-btn">Start 🎥</button>
+    </div>
+    <button id="redactData" class="btn secondary mt-10 full-width">Auto-Redact Sensitive Data 🔒</button>
+  </div>
+
+  <div class="remote-controls">
+    <h3>Mobile Remote</h3>
+    <p class="remote-desc">
+      Generate an ID to use your phone as a drawing tablet.<br>
+      <em>(Telefonunuzu çizim tableti olarak kullanmak için ID oluşturun.)</em>
+    </p>
+    <button id="connectMobile" class="btn secondary">Generate Mobile ID</button>
+    <div id="mobileIdDisplay" class="info-box hidden">
+      <p class="qr-title">Scan to Connect:</p>
+      <img id="mobileQrCode" src="" alt="QR Code" class="qr-image" />
+      <p class="manual-id-title">Manual ID:</p>
+      <strong id="peerId" class="manual-id-text">...</strong>
+      <p class="mobile-link-hint host-hint">(Or host the `mobile/` folder online and set the URL in code)</p>
+    </div>
+    <p id="mobileStatus" class="status-text"></p>
+  </div>
+
+  <div class="camera-controls">
+    <h3>Webcam Gestures</h3>
+    <button id="openCameraHub" class="btn secondary">Open Camera Hub</button>
+  </div>
+
+  <script src="js/popup.js"></script>
+</body>
+</html>
