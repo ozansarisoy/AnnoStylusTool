@@ -136,7 +136,7 @@ h3 {
 .full-width { width: 100%; }
 .remote-desc { font-size: 0.85em; color: #7f8c8d; margin-bottom: 5px; }
 .qr-title { font-weight: bold; margin-bottom: 5px; }
-.qr-image { display: block; margin: 5px auto; width: 120px; height: 120px; border-radius: 8px; background: white; padding: 5px; }
+.qr-image { display: flex; justify-content: center; align-items: center; margin: 5px auto; width: 120px; height: 120px; border-radius: 8px; background: white; padding: 5px; }
 .manual-id-title { font-size: 0.85em; margin-bottom: 2px; }
 .manual-id-text { font-size: 1.1em; }
 .host-hint { margin-top: 10px; }
