@@ -741,6 +741,37 @@ function handleRemoteData(data) {
   const screenY = data.y * window.innerHeight;
   const synthEvent = { clientX: screenX, clientY: screenY };
   
+  if (data.type === 'action') {
+    if (data.action === 'png') exportPNG();
+    if (data.action === 'svg') exportSVG();
+    if (data.action === 'redact') autoRedact();
+    if (data.action === 'cam') chrome.runtime.sendMessage({action: 'openCameraHub'});
+    return;
+  }
+  
+  if (data.type === 'navigate') {
+    chrome.runtime.sendMessage({ action: 'navigate', url: data.url });
+    return;
+  }
+  
+  if (data.type === 'simulateClick') {
+    // Temporarily hide overlays to find the real element underneath
+    const oldDisplayOverlay = overlayCanvas ? overlayCanvas.style.display : '';
+    if (overlayCanvas) overlayCanvas.style.display = 'none';
+    if (remoteCursorEl) remoteCursorEl.style.display = 'none';
+    
+    const element = document.elementFromPoint(screenX, screenY);
+    
+    // Restore overlays
+    if (overlayCanvas) overlayCanvas.style.display = oldDisplayOverlay;
+    if (remoteCursorEl) remoteCursorEl.style.display = 'block';
+    
+    if (element) {
+      element.click();
+    }
+    return;
+  }
+
   if (data.type === 'setting') {
     if (data.color) currentColor = data.color;
     if (data.size) currentSize = parseInt(data.size);

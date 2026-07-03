@@ -21,6 +21,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ status: 'opened' });
   }
 
+  if (request.action === 'navigate') {
+    let url = request.url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    chrome.tabs.update(sender.tab.id, { url: url });
+    sendResponse({ status: 'navigating' });
+  }
+
   if (request.action === 'convertVideo') {
     self.videoBuffer = request.buffer;
     self.videoFormat = request.format;

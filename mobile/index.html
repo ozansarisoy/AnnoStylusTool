@@ -2,144 +2,142 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>AST Mobile Controller</title>
-  <!-- Load PeerJS from unpkg -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
+    :root {
+      --glass-bg: rgba(255, 255, 255, 0.05);
+      --glass-border: rgba(255, 255, 255, 0.1);
+      --accent: #3498db;
+    }
     body {
-      margin: 0;
-      padding: 0;
-      background-color: #2c3e50;
-      color: white;
-      font-family: sans-serif;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      touch-action: none;
-      -webkit-user-select: none;
-      user-select: none;
+      margin: 0; padding: 0;
+      background: linear-gradient(135deg, #1e272e 0%, #2c3e50 100%);
+      color: white; font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow: hidden; display: flex; flex-direction: column; height: 100vh;
+      touch-action: none; user-select: none; -webkit-user-select: none;
     }
     #setup {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
-      padding: 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      flex: 1; padding: 20px;
     }
-    input {
-      padding: 15px;
-      font-size: 18px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      border: none;
-      width: 80%;
-      text-align: center;
+    input[type="text"] {
+      padding: 15px; font-size: 16px; margin-bottom: 15px; border-radius: 12px;
+      border: 1px solid var(--glass-border); width: 80%; text-align: center;
+      background: rgba(0,0,0,0.2); color: white; outline: none;
     }
+    input[type="text"]::placeholder { color: #aaa; }
     button.connect-btn {
-      padding: 15px 30px;
-      font-size: 18px;
-      background-color: #3498db;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
+      padding: 15px 30px; font-size: 18px; background-color: var(--accent); color: white;
+      border: none; border-radius: 12px; cursor: pointer; font-weight: 600;
+      box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3); transition: 0.2s;
     }
-    #main-ui {
-      display: none;
-      flex-direction: column;
-      height: 100%;
-    }
-    #toolbar {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
+    button.connect-btn:active { transform: scale(0.95); }
+    
+    #main-ui { display: none; flex-direction: column; height: 100%; }
+    
+    .glass-bar {
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--glass-border);
       padding: 10px;
-      background: #1a252f;
-      flex-wrap: wrap;
     }
+    
+    #toolbar {
+      display: flex; gap: 8px; overflow-x: auto; white-space: nowrap;
+      padding: 12px 10px; align-items: center;
+    }
+    #toolbar::-webkit-scrollbar { display: none; }
+    
     .tool-btn {
-      font-size: 24px;
-      padding: 10px 15px;
-      background: #34495e;
-      border: none;
-      border-radius: 8px;
-      color: white;
-      cursor: pointer;
+      font-size: 20px; padding: 12px;
+      background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border);
+      border-radius: 12px; color: white; cursor: pointer; transition: 0.2s;
+      flex-shrink: 0;
     }
     .tool-btn.active {
-      background: #3498db;
+      background: rgba(52, 152, 219, 0.5);
+      border-color: rgba(52, 152, 219, 0.8);
+      box-shadow: 0 0 10px rgba(52, 152, 219, 0.4);
     }
-    .tool-btn.clear-btn {
-      background: #e74c3c;
+    .tool-btn.action-btn { background: rgba(46, 204, 113, 0.3); }
+    .tool-btn.clear-btn { background: rgba(231, 76, 60, 0.3); }
+    
+    #settings-toolbar { display: flex; justify-content: center; gap: 15px; align-items: center; }
+    #remoteColor { width: 36px; height: 36px; padding: 0; margin: 0; border-radius: 8px; border: none; cursor: pointer; background: transparent; }
+    #remoteSize { flex: 1; max-width: 200px; margin: 0; accent-color: var(--accent); }
+    
+    .input-container {
+      display: none; padding: 10px; gap: 10px; align-items: center;
+      background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--glass-border);
     }
+    .input-container input { flex: 1; margin: 0; text-align: left; }
+    .input-container button {
+      padding: 15px 20px; background: var(--accent); color: white; border: none;
+      border-radius: 12px; font-weight: bold;
+    }
+    
     #touchpad {
-      flex: 1;
-      background-color: #34495e;
-      position: relative;
+      flex: 1; background-color: rgba(0, 0, 0, 0.2); display: block; width: 100%;
     }
-    .setup-desc { margin-bottom: 5px; }
-    .setup-hint { font-size: 0.8em; color: #bdc3c7; margin-top: 0; margin-bottom: 20px; text-align: center; }
-    #settings-toolbar { display: flex; justify-content: center; gap: 15px; padding: 10px; background: #2c3e50; align-items: center; }
-    #remoteColor { width: 40px; height: 40px; padding: 0; margin: 0; border-radius: 4px; cursor: pointer; }
-    #remoteSize { width: 150px; margin: 0; }
-    #textInputContainer {
-      display: none;
-      padding: 10px;
-      background: #34495e;
-      border-bottom: 1px solid #2c3e50;
-      gap: 10px;
-    }
-    #mobileTextInput {
-      flex: 1;
-      padding: 10px;
-      border-radius: 6px;
-      border: none;
-      font-size: 16px;
-      margin-bottom: 0;
-      width: auto;
-    }
+    
+    .setup-desc { margin-bottom: 5px; font-size: 1.1em; }
+    .setup-hint { font-size: 0.85em; color: #bdc3c7; margin-top: 0; margin-bottom: 30px; text-align: center; }
   </style>
 </head>
 <body>
   <div id="setup">
-    <h2>AST Remote</h2>
+    <h2 style="margin-bottom:10px;">AST Remote</h2>
     <p class="setup-desc">Enter the ID from your Chrome extension</p>
-    <p class="setup-hint">
-      (Click 'Generate Mobile ID' on your computer and enter the code here.)
-    </p>
-    <input type="text" id="peerIdInput" placeholder="e.g. ast-1234abcd">
+    <p class="setup-hint">(Click 'Generate Mobile ID' on your computer)</p>
+    <input type="text" id="peerIdInput" placeholder="e.g. ast-1234abcd" autocomplete="off" autocorrect="off" autocapitalize="off">
     <button id="connectBtn" class="connect-btn">Connect</button>
-    <p id="status"></p>
+    <p id="status" style="margin-top: 20px; color: #aaa;"></p>
   </div>
   
   <div id="main-ui">
-    <div id="toolbar">
+    <div id="toolbar" class="glass-bar">
+      <!-- Drawing Tools -->
       <button class="tool-btn active" data-tool="pen" title="Pen">🖊️</button>
       <button class="tool-btn" data-tool="highlight" title="Highlighter">🖍️</button>
       <button class="tool-btn" data-tool="rect" title="Rectangle">⬛</button>
       <button class="tool-btn" data-tool="circle" title="Circle">🔴</button>
       <button class="tool-btn" data-tool="triangle" title="Triangle">🔺</button>
       <button class="tool-btn" data-tool="icon" title="Icon">⭐</button>
+      <button class="tool-btn" data-tool="eraser" title="Eraser">🧹</button>
+      <!-- Features -->
+      <button class="tool-btn" data-tool="text" title="Text Tool">T</button>
+      <button class="tool-btn" data-tool="pointer" title="Mouse Pointer">🖱️</button>
+      <button class="tool-btn" data-tool="url" title="Open URL">🌐</button>
       <button class="tool-btn" data-tool="spotlight" title="Spotlight">🔦</button>
       <button class="tool-btn" data-tool="laser" title="Laser Pointer">🔴</button>
-      <button class="tool-btn" data-tool="eraser" title="Eraser">🧹</button>
-      <button class="tool-btn" data-tool="text" title="Text Tool">T</button>
-      <button class="tool-btn clear-btn" data-tool="clear" title="Clear Canvas">🗑️</button>
+      <!-- Actions -->
+      <button class="tool-btn action-btn" data-action="cam" title="WebCam">📹</button>
+      <button class="tool-btn action-btn" data-action="redact" title="Auto Redact">🔒</button>
+      <button class="tool-btn action-btn" data-action="png" title="Export PNG">📷</button>
+      <button class="tool-btn action-btn" data-action="svg" title="Export SVG">🖼️</button>
+      <button class="tool-btn clear-btn" data-action="clear" title="Clear Canvas">🗑️</button>
     </div>
-    <div id="settings-toolbar">
+    
+    <div id="settings-toolbar" class="glass-bar">
       <input type="color" id="remoteColor" value="#ff0000">
       <input type="range" id="remoteSize" min="1" max="50" value="5">
     </div>
-    <div id="textInputContainer">
-      <input type="text" id="mobileTextInput" placeholder="Tap screen to place cursor, then type here..." autocomplete="off">
+    
+    <div id="textInputContainer" class="input-container">
+      <input type="text" id="mobileTextInput" placeholder="Tap screen to place cursor, then type..." autocomplete="off">
     </div>
-    <div id="touchpad">
+    
+    <div id="urlInputContainer" class="input-container">
+      <input type="text" id="mobileUrlInput" placeholder="Enter URL (e.g. wikipedia.org)" autocomplete="off" autocapitalize="none">
+      <button id="urlGoBtn">Go</button>
     </div>
+    
+    <canvas id="touchpad"></canvas>
   </div>
 
-  <script src="app.js?v=5"></script>
+  <script src="app.js?v=6"></script>
 </body>
 </html>

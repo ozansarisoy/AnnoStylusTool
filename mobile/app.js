@@ -13,7 +13,16 @@ const peerIdInput = document.getElementById('peerIdInput');
 const connectBtn = document.getElementById('connectBtn');
 const statusText = document.getElementById('status');
 const setupDiv = document.getElementById('setup');
-const touchpad = document.getElementById('touchpad');
+const canvas = document.getElementById('touchpad');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+window.addEventListener('resize', resizeCanvas);
+// Call later when UI is shown
 
 peer.on('error', (err) => {
   statusText.innerText = 'Connection Failed: ' + (err.type || 'Timeout');
@@ -33,6 +42,7 @@ connectBtn.addEventListener('click', () => {
   conn.on('open', () => {
     setupDiv.style.display = 'none';
     document.getElementById('main-ui').style.display = 'flex';
+    setTimeout(resizeCanvas, 100);
   });
   
   conn.on('close', () => {
@@ -68,6 +78,16 @@ const remoteColor = document.getElementById('remoteColor');
 const remoteSize = document.getElementById('remoteSize');
 const mobileTextInput = document.getElementById('mobileTextInput');
 const textInputContainer = document.getElementById('textInputContainer');
+const urlInputContainer = document.getElementById('urlInputContainer');
+const mobileUrlInput = document.getElementById('mobileUrlInput');
+const urlGoBtn = document.getElementById('urlGoBtn');
+
+urlGoBtn.addEventListener('click', () => {
+  const url = mobileUrlInput.value.trim();
+  if (url && conn && conn.open) {
+    conn.send({ type: 'navigate', url: url });
+  }
+});
 
 remoteColor.addEventListener('input', (e) => {
   if (conn && conn.open) conn.send({ type: 'setting', color: e.target.value });
@@ -85,17 +105,25 @@ mobileTextInput.addEventListener('blur', (e) => {
   if (conn && conn.open) conn.send({ type: 'textBlur' });
 });
 
-// Tool Selection Handling
+// Tool & Action Selection Handling
 const toolBtns = document.querySelectorAll('.tool-btn');
 toolBtns.forEach(btn => {
   btn.addEventListener('click', (e) => {
-    const tool = btn.dataset.tool;
-    if (tool === 'clear') {
-      if (conn && conn.open) conn.send({ type: 'toolSelect', tool: 'clear' });
+    if (btn.classList.contains('action-btn')) {
+      const action = btn.dataset.action;
+      if (conn && conn.open) conn.send({ type: 'action', action: action });
       return;
     }
-    toolBtns.forEach(b => {
-      if (!b.classList.contains('clear-btn')) b.classList.remove('active');
+
+    const tool = btn.dataset.tool;
+    if (btn.classList.contains('clear-btn')) {
+      if (conn && conn.open) conn.send({ type: 'toolSelect', tool: 'clear' });
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // clear local too
+      return;
+    }
+    
+    document.querySelectorAll('.tool-btn:not(.action-btn):not(.clear-btn)').forEach(b => {
+      b.classList.remove('active');
     });
     btn.classList.add('active');
     
@@ -103,9 +131,17 @@ toolBtns.forEach(btn => {
     if (tool === 'text') {
       textInputContainer.style.display = 'flex';
       mobileTextInput.value = '';
+      setTimeout(() => mobileTextInput.focus(), 10);
     } else {
       textInputContainer.style.display = 'none';
       if (conn && conn.open) conn.send({ type: 'textBlur' });
+    }
+    
+    // Toggle URL Input UI
+    if (tool === 'url') {
+      urlInputContainer.style.display = 'flex';
+    } else {
+      urlInputContainer.style.display = 'none';
     }
     
     if (conn && conn.open) {
@@ -114,8 +150,51 @@ toolBtns.forEach(btn => {
   });
 });
 
-// Universal Pointer & Touch Handling
+// Local Drawing State
 let isDragging = false;
+let lastX = 0;
+let lastY = 0;
+
+function drawLocal(type, x, y) {
+  const activeToolBtn = document.querySelector('.tool-btn.active');
+  const tool = activeToolBtn ? activeToolBtn.dataset.tool : 'pen';
+  
+  // Only locally draw freehand strokes to preview
+  if (!['pen', 'highlight', 'eraser'].includes(tool)) return;
+  
+  const drawX = x * canvas.width;
+  const drawY = y * canvas.height;
+  
+  if (type === 'start') {
+    ctx.beginPath();
+    ctx.moveTo(drawX, drawY);
+    lastX = drawX;
+    lastY = drawY;
+  } else if (type === 'move') {
+    ctx.lineTo(drawX, drawY);
+    
+    if (tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = remoteSize.value * 2;
+      ctx.stroke();
+    } else {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = remoteColor.value;
+      ctx.lineWidth = remoteSize.value;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      if (tool === 'highlight') {
+        ctx.strokeStyle = remoteColor.value + '80'; // 50% opacity
+        ctx.lineWidth = remoteSize.value * 2;
+      }
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(drawX, drawY);
+    lastX = drawX;
+    lastY = drawY;
+  }
+}
 
 function sendDrawEvent(type, x, y, pointerType) {
   if (!conn || !conn.open) return;
@@ -124,14 +203,15 @@ function sendDrawEvent(type, x, y, pointerType) {
 
 function handlePointerEvent(e, type) {
   const activeToolBtn = document.querySelector('.tool-btn.active');
-  const isTextTool = activeToolBtn && activeToolBtn.dataset.tool === 'text';
+  const tool = activeToolBtn ? activeToolBtn.dataset.tool : '';
+  const isTextTool = tool === 'text';
 
-  // Prevent default scrolling unless it's text tool focusing
-  if (!isTextTool) {
+  // Prevent default scrolling unless it's text/url tool focusing
+  if (tool !== 'text' && tool !== 'url') {
     try { e.preventDefault(); } catch(err){}
   }
 
-  const rect = touchpad.getBoundingClientRect();
+  const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width;
   const y = (e.clientY - rect.top) / rect.height;
   
@@ -141,16 +221,26 @@ function handlePointerEvent(e, type) {
     return;
   }
   
-  if (!isTextTool) {
+  if (tool === 'pointer' && type === 'start') {
+    if (conn && conn.open) conn.send({ type: 'simulateClick', x, y });
+    return;
+  }
+  
+  if (!isTextTool && tool !== 'pointer' && tool !== 'url') {
+    drawLocal(type, x, y);
     sendDrawEvent(type, x, y, e.pointerType || 'mouse');
+  } else if (tool === 'pointer') {
+    // Just send hover for pointer so mouse moves
+    sendDrawEvent(type === 'move' ? 'hover' : type, x, y, e.pointerType || 'mouse');
   }
 }
 
 function handleTouchEvent(e, type) {
   const activeToolBtn = document.querySelector('.tool-btn.active');
-  const isTextTool = activeToolBtn && activeToolBtn.dataset.tool === 'text';
+  const tool = activeToolBtn ? activeToolBtn.dataset.tool : '';
+  const isTextTool = tool === 'text';
 
-  if (!isTextTool) {
+  if (tool !== 'text' && tool !== 'url') {
     try { e.preventDefault(); } catch(err){}
   }
 
@@ -158,11 +248,11 @@ function handleTouchEvent(e, type) {
   if (!touch && type !== 'stop') return;
   
   if (type === 'stop') {
-    if (!isTextTool) sendDrawEvent('stop', 0, 0, 'touch');
+    if (!isTextTool && tool !== 'pointer' && tool !== 'url') sendDrawEvent('stop', 0, 0, 'touch');
     return;
   }
   
-  const rect = touchpad.getBoundingClientRect();
+  const rect = canvas.getBoundingClientRect();
   const x = (touch.clientX - rect.left) / rect.width;
   const y = (touch.clientY - rect.top) / rect.height;
   
@@ -171,20 +261,28 @@ function handleTouchEvent(e, type) {
     if (conn && conn.open) conn.send({ type: 'textFocus', x, y });
     return;
   }
+  
+  if (tool === 'pointer' && type === 'start') {
+    if (conn && conn.open) conn.send({ type: 'simulateClick', x, y });
+    return;
+  }
 
-  if (!isTextTool) {
+  if (!isTextTool && tool !== 'pointer' && tool !== 'url') {
+    drawLocal(type, x, y);
     sendDrawEvent(type, x, y, 'touch');
+  } else if (tool === 'pointer') {
+    sendDrawEvent(type === 'move' ? 'hover' : type, x, y, 'touch');
   }
 }
 
 if (window.PointerEvent) {
-  touchpad.addEventListener('pointerdown', (e) => {
+  canvas.addEventListener('pointerdown', (e) => {
     isDragging = true;
-    try { touchpad.setPointerCapture(e.pointerId); } catch(err){}
+    try { canvas.setPointerCapture(e.pointerId); } catch(err){}
     handlePointerEvent(e, 'start');
   }, { passive: false });
 
-  touchpad.addEventListener('pointermove', (e) => {
+  canvas.addEventListener('pointermove', (e) => {
     if (isDragging) {
       handlePointerEvent(e, 'move');
     } else {
@@ -192,39 +290,39 @@ if (window.PointerEvent) {
     }
   }, { passive: false });
 
-  touchpad.addEventListener('pointerup', (e) => {
+  canvas.addEventListener('pointerup', (e) => {
     isDragging = false;
-    try { touchpad.releasePointerCapture(e.pointerId); } catch(err){}
+    try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
     handlePointerEvent(e, 'stop');
   }, { passive: false });
 
-  touchpad.addEventListener('pointercancel', (e) => {
+  canvas.addEventListener('pointercancel', (e) => {
     isDragging = false;
-    try { touchpad.releasePointerCapture(e.pointerId); } catch(err){}
+    try { canvas.releasePointerCapture(e.pointerId); } catch(err){}
     handlePointerEvent(e, 'stop');
   }, { passive: false });
 } else {
   // Legacy Fallbacks
-  touchpad.addEventListener('touchstart', (e) => {
+  canvas.addEventListener('touchstart', (e) => {
     isDragging = true;
     handleTouchEvent(e, 'start');
   }, { passive: false });
-  touchpad.addEventListener('touchmove', (e) => {
+  canvas.addEventListener('touchmove', (e) => {
     if (isDragging) handleTouchEvent(e, 'move');
   }, { passive: false });
-  touchpad.addEventListener('touchend', (e) => {
+  canvas.addEventListener('touchend', (e) => {
     isDragging = false;
     handleTouchEvent(e, 'stop');
   }, { passive: false });
   
-  touchpad.addEventListener('mousedown', (e) => {
+  canvas.addEventListener('mousedown', (e) => {
     isDragging = true;
     handlePointerEvent(e, 'start');
   });
-  touchpad.addEventListener('mousemove', (e) => {
+  canvas.addEventListener('mousemove', (e) => {
     if (isDragging) handlePointerEvent(e, 'move');
   });
-  touchpad.addEventListener('mouseup', (e) => {
+  canvas.addEventListener('mouseup', (e) => {
     isDragging = false;
     handlePointerEvent(e, 'stop');
   });
