@@ -324,7 +324,12 @@ function importWorkspace(jsonString) {
 // Message Listener from Popup/Background
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'toggleToolbar') {
-    createToolbar();
+    try {
+      createToolbar();
+    } catch (err) {
+      alert("AST Extension Error: " + err.message);
+      console.error("AST Extension Error:", err);
+    }
   }
   
   if (request.action === 'toggleDrawing') {
@@ -493,8 +498,8 @@ function createToolbar() {
         AST Tools
       </p>
       <div style="display:flex; gap:8px;">
-        <button class="ast-tb-btn" id="ast-tb-pin" title="Pin / Unpin">??</button>
-        <button class="ast-tb-btn" id="ast-tb-close" title="Close">?</button>
+        <button class="ast-tb-btn" id="ast-tb-pin" title="Pin / Unpin">📌 Pin</button>
+        <button class="ast-tb-btn" id="ast-tb-close" title="Close">✖</button>
       </div>
     </div>
     <div class="ast-tb-content">
@@ -503,13 +508,13 @@ function createToolbar() {
       <div class="ast-tb-section">
         <div class="ast-tb-section-title">Tools</div>
         <div class="ast-tb-tools">
-          <button class="ast-tb-tool active" data-tool="pen" title="Pen (P)">???</button>
-          <button class="ast-tb-tool" data-tool="highlight" title="Highlighter (H)">???</button>
-          <button class="ast-tb-tool" data-tool="rect" title="Rectangle (R)">?</button>
-          <button class="ast-tb-tool" data-tool="circle" title="Circle (C)">??</button>
-          <button class="ast-tb-tool" data-tool="eraser" title="Eraser (E)">??</button>
-          <button class="ast-tb-tool" data-tool="spotlight" title="Spotlight Mode (S)">??</button>
-          <button class="ast-tb-tool" data-tool="laser" title="Laser Pointer (L)">??</button>
+          <button class="ast-tb-tool active" data-tool="pen" title="Pen (P)">🖊️</button>
+          <button class="ast-tb-tool" data-tool="highlight" title="Highlighter (H)">🖍️</button>
+          <button class="ast-tb-tool" data-tool="rect" title="Rectangle (R)">⬛</button>
+          <button class="ast-tb-tool" data-tool="circle" title="Circle (C)">🔴</button>
+          <button class="ast-tb-tool" data-tool="eraser" title="Eraser (E)">🧹</button>
+          <button class="ast-tb-tool" data-tool="spotlight" title="Spotlight Mode (S)">🔦</button>
+          <button class="ast-tb-tool" data-tool="laser" title="Laser Pointer (L)">🔴</button>
         </div>
         
         <div class="ast-tb-colors">
@@ -539,7 +544,7 @@ function createToolbar() {
           <button class="ast-tb-btn" id="ast-tb-exp-png" style="flex:1;">Export PNG</button>
           <button class="ast-tb-btn" id="ast-tb-exp-svg" style="flex:1;">Export SVG</button>
         </div>
-        <button class="ast-tb-btn" id="ast-tb-redact" style="width: 100%">Auto-Redact Sensitive Data ??</button>
+        <button class="ast-tb-btn" id="ast-tb-redact" style="width: 100%">Auto-Redact Sensitive Data 🔒</button>
         <a href="#" id="ast-tb-cam-hub" class="ast-tb-link">Open Webcam Hub</a>
       </div>
     </div>
@@ -565,6 +570,7 @@ function setupToolbarEvents() {
   qS('#ast-tb-pin').onclick = () => {
     isPinned = !isPinned;
     qS('#ast-tb-pin').style.background = isPinned ? '#27ae60' : '';
+    qS('#ast-tb-pin').innerText = isPinned ? '📌 Pinned' : '📌 Pin';
   };
 
   const toggleDrawBtn = qS('#ast-tb-toggle-draw');
@@ -682,6 +688,17 @@ function handleRemoteData(data) {
     document.getElementById('ast-tb-toggle-draw').click();
   }
   
+  if (data.type === 'toolSelect') {
+    if (data.tool === 'clear') {
+      const clearBtn = astToolbar.querySelector('#ast-tb-clear');
+      if (clearBtn) clearBtn.click();
+    } else {
+      const btn = astToolbar.querySelector(`[data-tool="${data.tool}"]`);
+      if (btn) btn.click();
+    }
+    return;
+  }
+  
   const screenX = data.x * window.innerWidth;
   const screenY = data.y * window.innerHeight;
   const synthEvent = { clientX: screenX, clientY: screenY };
@@ -743,4 +760,19 @@ function setupDrag() {
       astToolbar.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
     }
   }
+}
+function exportPNG() {
+  if (!overlayCanvas) return alert("Canvas is empty!");
+  const link = document.createElement("a");
+  link.download = "annotation.png";
+  link.href = overlayCanvas.toDataURL("image/png");
+  link.click();
+}
+
+function exportSVG() {
+  alert("SVG export is coming soon!");
+}
+
+function autoRedact() {
+  alert("Auto-Redact is coming soon!");
 }

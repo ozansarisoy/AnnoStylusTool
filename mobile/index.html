@@ -17,7 +17,9 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      touch-action: none; /* Prevent scrolling while drawing */
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
     #setup {
       display: flex;
@@ -36,7 +38,7 @@
       width: 80%;
       text-align: center;
     }
-    button {
+    button.connect-btn {
       padding: 15px 30px;
       font-size: 18px;
       background-color: #3498db;
@@ -45,23 +47,41 @@
       border-radius: 8px;
       cursor: pointer;
     }
-    #touchpad {
+    #main-ui {
       display: none;
+      flex-direction: column;
+      height: 100%;
+    }
+    #toolbar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 10px;
+      background: #1a252f;
+      flex-wrap: wrap;
+    }
+    .tool-btn {
+      font-size: 24px;
+      padding: 10px 15px;
+      background: #34495e;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+    }
+    .tool-btn.active {
+      background: #3498db;
+    }
+    .tool-btn.clear-btn {
+      background: #e74c3c;
+    }
+    #touchpad {
       flex: 1;
       background-color: #34495e;
       position: relative;
     }
-    .info {
-      position: absolute;
-      top: 10px;
-      left: 0;
-      width: 100%;
-      text-align: center;
-      pointer-events: none;
-      opacity: 0.5;
-    }
     .setup-desc { margin-bottom: 5px; }
-    .setup-hint { font-size: 0.8em; color: #bdc3c7; margin-top: 0; margin-bottom: 20px; }
+    .setup-hint { font-size: 0.8em; color: #bdc3c7; margin-top: 0; margin-bottom: 20px; text-align: center; }
   </style>
 </head>
 <body>
@@ -69,17 +89,25 @@
     <h2>AST Remote</h2>
     <p class="setup-desc">Enter the ID from your Chrome extension</p>
     <p class="setup-hint">
-      (Bilgisayarınızdaki uzantıda 'Generate Mobile ID' butonuna basarak aldığınız kodu buraya girin.)
+      (Click 'Generate Mobile ID' on your computer and enter the code here.)
     </p>
-    <input type="text" id="peerIdInput" placeholder="e.g. 1234-abcd">
-    <button id="connectBtn">Connect</button>
+    <input type="text" id="peerIdInput" placeholder="e.g. ast-1234abcd">
+    <button id="connectBtn" class="connect-btn">Connect</button>
     <p id="status"></p>
   </div>
   
-  <div id="touchpad">
-    <div class="info">Draw Here</div>
+  <div id="main-ui">
+    <div id="toolbar">
+      <button class="tool-btn active" data-tool="pen" title="Pen">🖊️</button>
+      <button class="tool-btn" data-tool="highlight" title="Highlighter">🖍️</button>
+      <button class="tool-btn" data-tool="spotlight" title="Spotlight">🔦</button>
+      <button class="tool-btn" data-tool="laser" title="Laser Pointer">🔴</button>
+      <button class="tool-btn" data-tool="eraser" title="Eraser">🧹</button>
+      <button class="tool-btn clear-btn" data-tool="clear" title="Clear Canvas">🗑️</button>
+    </div>
+    <div id="touchpad"></div>
   </div>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

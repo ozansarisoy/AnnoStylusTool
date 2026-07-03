@@ -32,12 +32,12 @@ connectBtn.addEventListener('click', () => {
   
   conn.on('open', () => {
     setupDiv.style.display = 'none';
-    touchpad.style.display = 'block';
+    document.getElementById('main-ui').style.display = 'flex';
   });
   
   conn.on('close', () => {
     setupDiv.style.display = 'flex';
-    touchpad.style.display = 'none';
+    document.getElementById('main-ui').style.display = 'none';
     statusText.innerText = 'Connection lost. Reconnect?';
   });
   
@@ -63,6 +63,25 @@ if (idParam) {
     peer.on('open', doConnect);
   }
 }
+
+// Tool Selection Handling
+const toolBtns = document.querySelectorAll('.tool-btn');
+toolBtns.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const tool = btn.dataset.tool;
+    if (tool === 'clear') {
+      if (conn && conn.open) conn.send({ type: 'toolSelect', tool: 'clear' });
+      return;
+    }
+    toolBtns.forEach(b => {
+      if (!b.classList.contains('clear-btn')) b.classList.remove('active');
+    });
+    btn.classList.add('active');
+    if (conn && conn.open) {
+      conn.send({ type: 'toolSelect', tool: tool });
+    }
+  });
+});
 
 // Universal Pointer & Touch Handling
 let isDragging = false;
