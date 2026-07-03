@@ -64,6 +64,27 @@ if (idParam) {
   }
 }
 
+// Settings Handling
+const remoteColor = document.getElementById('remoteColor');
+const remoteSize = document.getElementById('remoteSize');
+const hiddenTextInput = document.getElementById('hiddenTextInput');
+
+remoteColor.addEventListener('input', (e) => {
+  if (conn && conn.open) conn.send({ type: 'setting', color: e.target.value });
+});
+
+remoteSize.addEventListener('input', (e) => {
+  if (conn && conn.open) conn.send({ type: 'setting', size: e.target.value });
+});
+
+hiddenTextInput.addEventListener('input', (e) => {
+  if (conn && conn.open) conn.send({ type: 'textInput', text: e.target.value });
+});
+
+hiddenTextInput.addEventListener('blur', (e) => {
+  if (conn && conn.open) conn.send({ type: 'textBlur' });
+});
+
 // Tool Selection Handling
 const toolBtns = document.querySelectorAll('.tool-btn');
 toolBtns.forEach(btn => {
@@ -92,11 +113,22 @@ function sendDrawEvent(type, x, y, pointerType) {
 }
 
 function handlePointerEvent(e, type) {
-  try { e.preventDefault(); } catch(err){}
+  // Check if Text tool is active
+  const activeToolBtn = document.querySelector('.tool-btn.active');
+  const isTextTool = activeToolBtn && activeToolBtn.dataset.tool === 'text';
+
+  // If text tool is active, don't prevent default on start so input can focus
+  if (!isTextTool) {
+    try { e.preventDefault(); } catch(err){}
+  }
   
-  // Visual feedback on the iPad screen
   if (type === 'start') {
     touchpad.style.backgroundColor = '#2980b9'; // Darker blue when touching
+    
+    if (isTextTool) {
+      hiddenTextInput.value = '';
+      hiddenTextInput.focus();
+    }
   } else if (type === 'stop') {
     touchpad.style.backgroundColor = '#34495e'; // Original color
   }
@@ -104,11 +136,24 @@ function handlePointerEvent(e, type) {
   const rect = touchpad.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width;
   const y = (e.clientY - rect.top) / rect.height;
-  sendDrawEvent(type, x, y, e.pointerType || 'mouse');
+  
+  if (isTextTool && type === 'start') {
+    if (conn && conn.open) conn.send({ type: 'textFocus', x, y });
+    return;
+  }
+  
+  if (!isTextTool) {
+    sendDrawEvent(type, x, y, e.pointerType || 'mouse');
+  }
 }
 
 function handleTouchEvent(e, type) {
-  try { e.preventDefault(); } catch(err){}
+  const activeToolBtn = document.querySelector('.tool-btn.active');
+  const isTextTool = activeToolBtn && activeToolBtn.dataset.tool === 'text';
+
+  if (!isTextTool) {
+    try { e.preventDefault(); } catch(err){}
+  }
   
   if (type === 'start') {
     touchpad.style.backgroundColor = '#2980b9';
@@ -120,14 +165,24 @@ function handleTouchEvent(e, type) {
   if (!touch && type !== 'stop') return;
   
   if (type === 'stop') {
-    sendDrawEvent('stop', 0, 0, 'touch');
+    if (!isTextTool) sendDrawEvent('stop', 0, 0, 'touch');
     return;
   }
   
   const rect = touchpad.getBoundingClientRect();
   const x = (touch.clientX - rect.left) / rect.width;
   const y = (touch.clientY - rect.top) / rect.height;
-  sendDrawEvent(type, x, y, 'touch');
+  
+  if (isTextTool && type === 'start') {
+    hiddenTextInput.value = '';
+    hiddenTextInput.focus();
+    if (conn && conn.open) conn.send({ type: 'textFocus', x, y });
+    return;
+  }
+
+  if (!isTextTool) {
+    sendDrawEvent(type, x, y, 'touch');
+  }
 }
 
 if (window.PointerEvent) {

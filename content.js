@@ -3,6 +3,7 @@
 let isEnabled = false;
 let currentTool = 'pen';
 let currentColor = '#e74c3c';
+let currentSize = 3;
 let isDrawing = false;
 
 // Drawing state
@@ -143,6 +144,8 @@ function stopDraw(e) {
   }
 }
 
+let activeTextStroke = null;
+
 function undo() {
   if (strokes.length > 0) {
     redoStack.push(strokes.pop());
@@ -181,6 +184,7 @@ function handleHotkeys(e) {
     case 'c': newTool = 'circle'; break;
     case 's': newTool = 'spotlight'; break;
     case 'l': newTool = 'laser'; break;
+    case 't': newTool = 'text'; break;
     case 'escape': 
       isEnabled = false;
       chrome.runtime.sendMessage({ action: 'toggleDrawing', state: false });
@@ -204,22 +208,22 @@ function setupBrush(tool, color) {
   
   if (tool === 'pen') {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = currentSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   } else if (tool === 'highlight') {
     ctx.strokeStyle = color + '66';
-    ctx.lineWidth = 15;
+    ctx.lineWidth = currentSize * 5;
     ctx.lineCap = 'square';
     ctx.lineJoin = 'round';
   } else if (tool === 'eraser') {
     ctx.strokeStyle = 'rgba(0,0,0,1)';
-    ctx.lineWidth = 20;
+    ctx.lineWidth = currentSize * 6;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
   } else {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = currentSize;
   }
 }
 
@@ -247,6 +251,10 @@ function redrawAll() {
       ctx.beginPath();
       ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.radius, 0, 2 * Math.PI);
       ctx.stroke();
+    } else if (stroke.tool === 'text') {
+      ctx.font = `${stroke.size * 8}px "Segoe UI", sans-serif`;
+      ctx.fillStyle = stroke.color;
+      ctx.fillText(stroke.text, stroke.x, stroke.y);
     }
   }
   
@@ -515,6 +523,7 @@ function createToolbar() {
           <button class="ast-tb-tool" data-tool="eraser" title="Eraser (E)">🧹</button>
           <button class="ast-tb-tool" data-tool="spotlight" title="Spotlight Mode (S)">🔦</button>
           <button class="ast-tb-tool" data-tool="laser" title="Laser Pointer (L)">🔴</button>
+          <button class="ast-tb-tool" data-tool="text" title="Text (T)">T</button>
         </div>
         
         <div class="ast-tb-colors">
@@ -702,6 +711,35 @@ function handleRemoteData(data) {
   const screenX = data.x * window.innerWidth;
   const screenY = data.y * window.innerHeight;
   const synthEvent = { clientX: screenX, clientY: screenY };
+  
+  if (data.type === 'setting') {
+    if (data.color) currentColor = data.color;
+    if (data.size) currentSize = parseInt(data.size);
+    return;
+  }
+  
+  if (data.type === 'textFocus') {
+    activeTextStroke = { tool: 'text', color: currentColor, size: currentSize, x: screenX, y: screenY, text: '' };
+    strokes.push(activeTextStroke);
+    redoStack = [];
+    return;
+  }
+  
+  if (data.type === 'textInput') {
+    if (activeTextStroke) {
+      activeTextStroke.text = data.text;
+      redrawAll();
+    }
+    return;
+  }
+  
+  if (data.type === 'textBlur') {
+    if (activeTextStroke && !activeTextStroke.text) {
+      strokes.pop(); // remove empty text stroke
+    }
+    activeTextStroke = null;
+    return;
+  }
   
   remoteCursorX = screenX;
   remoteCursorY = screenY;

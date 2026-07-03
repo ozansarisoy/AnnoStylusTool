@@ -103,9 +103,16 @@
       <button class="tool-btn" data-tool="spotlight" title="Spotlight">🔦</button>
       <button class="tool-btn" data-tool="laser" title="Laser Pointer">🔴</button>
       <button class="tool-btn" data-tool="eraser" title="Eraser">🧹</button>
+      <button class="tool-btn" data-tool="text" title="Text Tool">T</button>
       <button class="tool-btn clear-btn" data-tool="clear" title="Clear Canvas">🗑️</button>
     </div>
-    <div id="touchpad"></div>
+    <div id="settings-toolbar" style="display: flex; justify-content: center; gap: 15px; padding: 10px; background: #2c3e50; align-items: center;">
+      <input type="color" id="remoteColor" value="#ff0000" style="width: 40px; height: 40px; padding: 0; margin: 0; border-radius: 4px; cursor: pointer;">
+      <input type="range" id="remoteSize" min="1" max="50" value="5" style="width: 150px; margin: 0;">
+    </div>
+    <div id="touchpad">
+      <input type="text" id="hiddenTextInput" style="position: absolute; opacity: 0; pointer-events: none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
   </div>
 
   <script src="app.js?v=5"></script>
