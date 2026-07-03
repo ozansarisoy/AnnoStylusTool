@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Send message to content script
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tab) {
-      chrome.tabs.sendMessage(tab.id, { action: 'toggleDrawing', enabled: isDrawingEnabled });
+      chrome.tabs.sendMessage(tab.id, { action: 'toggleDrawing', enabled: isDrawingEnabled }).catch(e => console.warn("Content script missing", e));
     }
   });
 
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.currentTarget.classList.add('active');
       const tool = e.currentTarget.dataset.tool;
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) chrome.tabs.sendMessage(tab.id, { action: 'setTool', tool });
+      if (tab) chrome.tabs.sendMessage(tab.id, { action: 'setTool', tool }).catch(e => console.warn("Content script missing", e));
     });
   });
 
@@ -45,28 +45,28 @@ document.addEventListener('DOMContentLoaded', () => {
       e.currentTarget.classList.add('active');
       const color = e.currentTarget.dataset.color;
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) chrome.tabs.sendMessage(tab.id, { action: 'setColor', color });
+      if (tab) chrome.tabs.sendMessage(tab.id, { action: 'setColor', color }).catch(e => console.warn("Content script missing", e));
     });
   });
 
   // Clear Canvas
   document.getElementById('clearCanvas').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'clearCanvas' });
+    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'clearCanvas' }).catch(e => console.warn("Content script missing", e));
   });
 
   // Workflow: Export
   document.getElementById('exportJson').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'exportJSON' });
+    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'exportJSON' }).catch(e => console.warn("Content script missing", e));
   });
   document.getElementById('exportPng').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'exportPNG' });
+    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'exportPNG' }).catch(e => console.warn("Content script missing", e));
   });
   document.getElementById('exportSvg').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'exportSVG' });
+    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'exportSVG' }).catch(e => console.warn("Content script missing", e));
   });
 
   // Workflow: Import JSON
@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reader = new FileReader();
     reader.onload = async (ev) => {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab) chrome.tabs.sendMessage(tab.id, { action: 'importJSON', data: ev.target.result });
+      if (tab) chrome.tabs.sendMessage(tab.id, { action: 'importJSON', data: ev.target.result }).catch(e => console.warn("Content script missing", e));
     };
     reader.readAsText(file);
   });
@@ -117,72 +117,60 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isRecording) {
       btn.textContent = 'Stop ⏹️';
       btn.style.backgroundColor = '#2ecc71'; // green when recording
-      chrome.tabs.sendMessage(tab.id, { action: 'startRecording' });
+      chrome.tabs.sendMessage(tab.id, { action: 'startRecording' }).catch(e => console.warn("Content script missing", e));
     } else {
       btn.textContent = 'Start 🎥';
       btn.style.backgroundColor = '#e74c3c';
       const format = document.getElementById('videoFormat').value;
-      chrome.tabs.sendMessage(tab.id, { action: 'stopRecording', format: format });
+      chrome.tabs.sendMessage(tab.id, { action: 'stopRecording', format: format }).catch(e => console.warn("Content script missing", e));
     }
   });
 
   // Workflow: Auto-Redact
   document.getElementById('redactData').addEventListener('click', async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'autoRedact' });
+    if (tab) chrome.tabs.sendMessage(tab.id, { action: 'autoRedact' }).catch(e => console.warn("Content script missing", e));
   });
 
   // Mobile Remote Setup
-  connectMobileBtn.addEventListener('click', () => {
+  const mobileQrCode = document.getElementById('mobileQrCode');
+  
+  connectMobileBtn.addEventListener('click', async () => {
     connectMobileBtn.disabled = true;
-    connectMobileBtn.textContent = 'Generating...';
-
-    // Create custom ID to skip PeerJS XHR fetch (which is blocked by COEP require-corp)
-    const customId = 'ast-' + Math.random().toString(36).substr(2, 9);
-    peer = new Peer(customId); // Create new PeerJS instance
+    mobileStatus.textContent = 'Connecting...';
+    mobileQrCode.innerHTML = '';
     
-    peer.on('open', (id) => {
-      connectMobileBtn.style.display = 'none';
-      mobileIdDisplay.style.display = 'block';
-      peerIdEl.textContent = id;
-      
-      // We use the GitHub Pages URL for the mobile remote app
-      const HOSTED_URL = 'https://ozansarisoy.github.io/AnnoStylusTool/mobile/'; 
-      const connectUrl = `${HOSTED_URL}?id=${id}`;
-      
-      // Generate QR Code pointing to the URL with the auto-connect ID
-      const qrContainer = document.getElementById('mobileQrCode');
-      qrContainer.innerHTML = ''; // clear previous if any
-      new QRCode(qrContainer, {
-        text: connectUrl,
-        width: 120,
-        height: 120,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.L
-      });
-    });
-
-    peer.on('connection', (conn) => {
-      mobileStatus.textContent = 'Phone connected!';
-      
-      conn.on('data', async (data) => {
-        // Relay data to active tab
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab) {
-          chrome.tabs.sendMessage(tab.id, { action: 'remoteDraw', data });
-        }
-      });
-      
-      conn.on('close', () => {
-        mobileStatus.textContent = 'Phone disconnected.';
-      });
-    });
-    
-    peer.on('error', (err) => {
-      mobileStatus.textContent = 'Error: ' + err.type;
-      connectMobileBtn.disabled = false;
-      connectMobileBtn.textContent = 'Generate Mobile ID';
+    chrome.runtime.sendMessage({ action: 'startMobileRemoteBg' }, (response) => {
+      if (chrome.runtime.lastError) {
+        mobileStatus.textContent = 'Error: ' + chrome.runtime.lastError.message;
+        connectMobileBtn.disabled = false;
+        return;
+      }
+      if (response && response.id) {
+        mobileStatus.textContent = 'Ready! Scan QR with your phone:';
+        connectMobileBtn.style.display = 'none';
+        mobileIdDisplay.style.display = 'block';
+        document.getElementById('peerId').textContent = response.id;
+        
+        // Use GitHub Pages URL
+        const mobileUrl = `https://ozansarisoy.github.io/AnnoStylusTool/mobile/?id=${response.id}`;
+        
+        // Generate QR Code locally to avoid COEP block
+        new QRCode(mobileQrCode, {
+          text: mobileUrl,
+          width: 120,
+          height: 120,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.L
+        });
+      } else if (response && response.error) {
+        mobileStatus.textContent = 'Error: ' + response.error;
+        connectMobileBtn.disabled = false;
+      } else {
+        mobileStatus.textContent = 'Error: Could not connect to PeerJS.';
+        connectMobileBtn.disabled = false;
+      }
     });
   });
 

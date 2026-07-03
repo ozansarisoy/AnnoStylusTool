@@ -11,6 +11,7 @@ let currentX, currentY;
 let ctx;
 let overlayCanvas;
 let spotlightOverlay;
+let remoteCursorX = null, remoteCursorY = null, showRemoteCursor = false;
 
 // Stroke Tracking for Save/Export and Redraw
 let strokes = [];
@@ -248,6 +249,17 @@ function redrawAll() {
       ctx.stroke();
     }
   }
+  
+  if (showRemoteCursor && remoteCursorX !== null && remoteCursorY !== null && currentTool !== 'laser' && currentTool !== 'spotlight') {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.beginPath();
+    ctx.arc(remoteCursorX, remoteCursorY, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(52, 152, 219, 0.8)'; // A nice blue indicator
+    ctx.fill();
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'white';
+    ctx.stroke();
+  }
 }
 
 // Data Export/Import
@@ -343,14 +355,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     redrawAll();
   }
   
-  if (request.action === 'remoteDraw') {
-    // simplified remote handling logic
-    const screenX = request.data.x * window.innerWidth;
-    const screenY = request.data.y * window.innerHeight;
+  if (request.action === 'relayDrawCommand') {
+    const data = request.data;
+    if (!isEnabled) {
+      isEnabled = true;
+      initCanvas();
+      if (overlayCanvas) overlayCanvas.style.pointerEvents = 'auto'; 
+      document.body.style.userSelect = 'none'; 
+      chrome.runtime.sendMessage({ action: 'toggleDrawing', state: true });
+    }
+    
+    const screenX = data.x * window.innerWidth;
+    const screenY = data.y * window.innerHeight;
     const synthEvent = { clientX: screenX, clientY: screenY };
-    if (request.data.type === 'start') startDraw(synthEvent);
-    else if (request.data.type === 'move') draw(synthEvent);
-    else if (request.data.type === 'stop') stopDraw(synthEvent);
+    
+    remoteCursorX = screenX;
+    remoteCursorY = screenY;
+    showRemoteCursor = true;
+    
+    if (data.type === 'start') {
+      startDraw(synthEvent);
+    } else if (data.type === 'move') {
+      draw(synthEvent);
+    } else if (data.type === 'stop') {
+      stopDraw(synthEvent);
+      setTimeout(() => { showRemoteCursor = false; redrawAll(); }, 2000);
+    } else if (data.type === 'hover') {
+      if (currentTool === 'laser' || currentTool === 'spotlight') {
+        draw(synthEvent);
+      } else {
+        redrawAll();
+      }
+    }
   }
 
   if (request.action === 'exportJSON') exportWorkspace();

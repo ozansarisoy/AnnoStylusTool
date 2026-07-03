@@ -52,34 +52,47 @@ if (idParam) {
   }
 }
 
-// Touch handling
+// Pointer handling for universal support (Touch, Pen, Mouse)
+let isDragging = false;
+
 function sendDrawEvent(type, e) {
   if (!conn || !conn.open) return;
-  e.preventDefault(); // Prevent scrolling
-  
-  // Get first touch point
-  const touch = e.touches ? e.touches[0] : e;
-  if (!touch) return;
   
   // Normalize coordinates (0.0 to 1.0)
   const rect = touchpad.getBoundingClientRect();
-  const x = (touch.clientX - rect.left) / rect.width;
-  const y = (touch.clientY - rect.top) / rect.height;
+  const x = (e.clientX - rect.left) / rect.width;
+  const y = (e.clientY - rect.top) / rect.height;
   
-  conn.send({ type, x, y });
+  conn.send({ type, x, y, pointerType: e.pointerType });
 }
 
-touchpad.addEventListener('touchstart', (e) => sendDrawEvent('start', e), { passive: false });
-touchpad.addEventListener('touchmove', (e) => sendDrawEvent('move', e), { passive: false });
-touchpad.addEventListener('touchend', (e) => {
-  if (!conn || !conn.open) return;
-  // touchend doesn't have clientX/Y on touches[0] usually, we just send a stop signal
-  conn.send({ type: 'stop' });
-}, { passive: false });
-
-// Mouse fallback for testing on desktop
-touchpad.addEventListener('mousedown', (e) => sendDrawEvent('start', e));
-touchpad.addEventListener('mousemove', (e) => {
-  if (e.buttons === 1) sendDrawEvent('move', e);
+touchpad.addEventListener('pointerdown', (e) => {
+  e.preventDefault();
+  isDragging = true;
+  touchpad.setPointerCapture(e.pointerId);
+  sendDrawEvent('start', e);
 });
-touchpad.addEventListener('mouseup', (e) => conn.send({ type: 'stop' }));
+
+touchpad.addEventListener('pointermove', (e) => {
+  e.preventDefault();
+  if (isDragging) {
+    sendDrawEvent('move', e);
+  } else {
+    // Send hover events (useful for laser pointer or showing a simulated cursor)
+    sendDrawEvent('hover', e);
+  }
+});
+
+touchpad.addEventListener('pointerup', (e) => {
+  e.preventDefault();
+  isDragging = false;
+  touchpad.releasePointerCapture(e.pointerId);
+  sendDrawEvent('stop', e);
+});
+
+touchpad.addEventListener('pointercancel', (e) => {
+  e.preventDefault();
+  isDragging = false;
+  touchpad.releasePointerCapture(e.pointerId);
+  sendDrawEvent('stop', e);
+});
