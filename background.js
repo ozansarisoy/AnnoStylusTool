@@ -3,45 +3,20 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('Anno Stylus Tool installed');
 });
 
-async function setupOffscreenDocument(path) {
-  if (await chrome.offscreen.hasDocument()) return;
-  await chrome.offscreen.createDocument({
-    url: path,
-    reasons: ['WEB_RTC'],
-    justification: 'Mobile remote drawing WebRTC connection'
-  });
-}
+chrome.action.onClicked.addListener((tab) => {
+  if (!tab.url.startsWith("chrome://") && !tab.url.startsWith("edge://") && !tab.url.startsWith("about:")) {
+    chrome.tabs.sendMessage(tab.id, { action: 'toggleToolbar' }, (response) => {
+      if (chrome.runtime.lastError) {
+        console.warn("Could not send toggle message, script might not be injected yet.");
+      }
+    });
+  }
+});
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'openCameraHub') {
     chrome.tabs.create({ url: chrome.runtime.getURL('camera/index.html') });
     sendResponse({ status: 'opened' });
-  }
-  
-  if (request.action === 'relayDrawCommand') {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, request, () => {
-          if (chrome.runtime.lastError) {}
-        });
-      }
-    });
-    sendResponse({ status: 'relayed' });
-  }
-
-  if (request.action === 'startMobileRemoteBg') {
-    setupOffscreenDocument('remote.html').then(() => {
-      chrome.runtime.sendMessage({ action: 'startMobileRemote' }, (response) => {
-        if (chrome.runtime.lastError) {
-          sendResponse({ error: chrome.runtime.lastError.message });
-        } else {
-          sendResponse(response);
-        }
-      });
-    }).catch(err => {
-      sendResponse({ error: 'Offscreen Error: ' + err.message });
-    });
-    return true; // async
   }
 
   if (request.action === 'convertVideo') {
