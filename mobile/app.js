@@ -62,6 +62,14 @@ function sendDrawEvent(type, x, y, pointerType) {
 
 function handlePointerEvent(e, type) {
   try { e.preventDefault(); } catch(err){}
+  
+  // Visual feedback on the iPad screen
+  if (type === 'start') {
+    touchpad.style.backgroundColor = '#2980b9'; // Darker blue when touching
+  } else if (type === 'stop') {
+    touchpad.style.backgroundColor = '#34495e'; // Original color
+  }
+
   const rect = touchpad.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width;
   const y = (e.clientY - rect.top) / rect.height;
@@ -70,6 +78,13 @@ function handlePointerEvent(e, type) {
 
 function handleTouchEvent(e, type) {
   try { e.preventDefault(); } catch(err){}
+  
+  if (type === 'start') {
+    touchpad.style.backgroundColor = '#2980b9';
+  } else if (type === 'stop') {
+    touchpad.style.backgroundColor = '#34495e';
+  }
+
   const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null);
   if (!touch && type !== 'stop') return;
   
