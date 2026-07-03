@@ -1,5 +1,12 @@
 const customId = 'ast-mobile-' + Math.random().toString(36).substr(2, 9);
-const peer = new Peer(customId);
+const peer = new Peer(customId, {
+  config: {
+    'iceServers': [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+  }
+});
 let conn = null;
 
 const peerIdInput = document.getElementById('peerIdInput');
@@ -8,15 +15,20 @@ const statusText = document.getElementById('status');
 const setupDiv = document.getElementById('setup');
 const touchpad = document.getElementById('touchpad');
 
+peer.on('error', (err) => {
+  statusText.innerText = 'Connection Failed: ' + (err.type || 'Timeout');
+  connectBtn.style.display = 'block';
+});
+
 connectBtn.addEventListener('click', () => {
   const extId = peerIdInput.value.trim();
   if (!extId) {
-    statusText.innerText = 'Please enter an ID';
+    statusText.innerText = 'Please enter a valid ID';
     return;
   }
   
-  statusText.innerText = 'Connecting...';
-  conn = peer.connect(extId);
+  statusText.innerText = 'Linking to computer...';
+  conn = peer.connect(extId, { reliable: true });
   
   conn.on('open', () => {
     setupDiv.style.display = 'none';
@@ -30,7 +42,7 @@ connectBtn.addEventListener('click', () => {
   });
   
   conn.on('error', (err) => {
-    statusText.innerText = 'Error: ' + err.message;
+    statusText.innerText = 'Link Error: ' + err.message;
   });
 });
 
@@ -39,7 +51,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const idParam = urlParams.get('id');
 if (idParam) {
   peerIdInput.value = idParam;
-  statusText.innerText = 'Initializing...';
+  statusText.innerText = 'Preparing device...';
   
   const doConnect = () => {
     connectBtn.click();
