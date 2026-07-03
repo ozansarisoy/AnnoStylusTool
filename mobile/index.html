@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AST Mobile Controller</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
@@ -16,12 +16,15 @@
       background: linear-gradient(135deg, #1e272e 0%, #2c3e50 100%);
       color: white; font-family: 'Segoe UI', system-ui, sans-serif;
       overflow: hidden; display: flex; flex-direction: column; height: 100vh;
-      touch-action: none; user-select: none; -webkit-user-select: none;
+      touch-action: none; -webkit-user-select: none; user-select: none; 
     }
     #setup {
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       flex: 1; padding: 20px;
     }
+    #setup h2 { margin-bottom: 10px; }
+    #status { margin-top: 20px; color: #aaa; }
+    
     input[type="text"] {
       padding: 15px; font-size: 16px; margin-bottom: 15px; border-radius: 12px;
       border: 1px solid var(--glass-border); width: 80%; text-align: center;
@@ -39,8 +42,8 @@
     
     .glass-bar {
       background: var(--glass-bg);
-      backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--glass-border);
       padding: 10px;
     }
@@ -89,12 +92,12 @@
 </head>
 <body>
   <div id="setup">
-    <h2 style="margin-bottom:10px;">AST Remote</h2>
+    <h2>AST Remote</h2>
     <p class="setup-desc">Enter the ID from your Chrome extension</p>
     <p class="setup-hint">(Click 'Generate Mobile ID' on your computer)</p>
-    <input type="text" id="peerIdInput" placeholder="e.g. ast-1234abcd" autocomplete="off" autocorrect="off" autocapitalize="off">
+    <input type="text" id="peerIdInput" placeholder="e.g. ast-1234abcd" autocomplete="off" autocorrect="off">
     <button id="connectBtn" class="connect-btn">Connect</button>
-    <p id="status" style="margin-top: 20px; color: #aaa;"></p>
+    <p id="status"></p>
   </div>
   
   <div id="main-ui">
@@ -131,7 +134,7 @@
     </div>
     
     <div id="urlInputContainer" class="input-container">
-      <input type="text" id="mobileUrlInput" placeholder="Enter URL (e.g. wikipedia.org)" autocomplete="off" autocapitalize="none">
+      <input type="text" id="mobileUrlInput" placeholder="Enter URL (e.g. wikipedia.org)" autocomplete="off">
       <button id="urlGoBtn">Go</button>
     </div>
     
