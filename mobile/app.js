@@ -52,47 +52,87 @@ if (idParam) {
   }
 }
 
-// Pointer handling for universal support (Touch, Pen, Mouse)
+// Universal Pointer & Touch Handling
 let isDragging = false;
 
-function sendDrawEvent(type, e) {
+function sendDrawEvent(type, x, y, pointerType) {
   if (!conn || !conn.open) return;
-  
-  // Normalize coordinates (0.0 to 1.0)
+  conn.send({ type, x, y, pointerType });
+}
+
+function handlePointerEvent(e, type) {
+  try { e.preventDefault(); } catch(err){}
   const rect = touchpad.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width;
   const y = (e.clientY - rect.top) / rect.height;
-  
-  conn.send({ type, x, y, pointerType: e.pointerType });
+  sendDrawEvent(type, x, y, e.pointerType || 'mouse');
 }
 
-touchpad.addEventListener('pointerdown', (e) => {
-  e.preventDefault();
-  isDragging = true;
-  touchpad.setPointerCapture(e.pointerId);
-  sendDrawEvent('start', e);
-});
-
-touchpad.addEventListener('pointermove', (e) => {
-  e.preventDefault();
-  if (isDragging) {
-    sendDrawEvent('move', e);
-  } else {
-    // Send hover events (useful for laser pointer or showing a simulated cursor)
-    sendDrawEvent('hover', e);
+function handleTouchEvent(e, type) {
+  try { e.preventDefault(); } catch(err){}
+  const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null);
+  if (!touch && type !== 'stop') return;
+  
+  if (type === 'stop') {
+    sendDrawEvent('stop', 0, 0, 'touch');
+    return;
   }
-});
+  
+  const rect = touchpad.getBoundingClientRect();
+  const x = (touch.clientX - rect.left) / rect.width;
+  const y = (touch.clientY - rect.top) / rect.height;
+  sendDrawEvent(type, x, y, 'touch');
+}
 
-touchpad.addEventListener('pointerup', (e) => {
-  e.preventDefault();
-  isDragging = false;
-  touchpad.releasePointerCapture(e.pointerId);
-  sendDrawEvent('stop', e);
-});
+if (window.PointerEvent) {
+  touchpad.addEventListener('pointerdown', (e) => {
+    isDragging = true;
+    try { touchpad.setPointerCapture(e.pointerId); } catch(err){}
+    handlePointerEvent(e, 'start');
+  }, { passive: false });
 
-touchpad.addEventListener('pointercancel', (e) => {
-  e.preventDefault();
-  isDragging = false;
-  touchpad.releasePointerCapture(e.pointerId);
-  sendDrawEvent('stop', e);
-});
+  touchpad.addEventListener('pointermove', (e) => {
+    if (isDragging) {
+      handlePointerEvent(e, 'move');
+    } else {
+      handlePointerEvent(e, 'hover');
+    }
+  }, { passive: false });
+
+  touchpad.addEventListener('pointerup', (e) => {
+    isDragging = false;
+    try { touchpad.releasePointerCapture(e.pointerId); } catch(err){}
+    handlePointerEvent(e, 'stop');
+  }, { passive: false });
+
+  touchpad.addEventListener('pointercancel', (e) => {
+    isDragging = false;
+    try { touchpad.releasePointerCapture(e.pointerId); } catch(err){}
+    handlePointerEvent(e, 'stop');
+  }, { passive: false });
+} else {
+  // Legacy Fallbacks
+  touchpad.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    handleTouchEvent(e, 'start');
+  }, { passive: false });
+  touchpad.addEventListener('touchmove', (e) => {
+    if (isDragging) handleTouchEvent(e, 'move');
+  }, { passive: false });
+  touchpad.addEventListener('touchend', (e) => {
+    isDragging = false;
+    handleTouchEvent(e, 'stop');
+  }, { passive: false });
+  
+  touchpad.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    handlePointerEvent(e, 'start');
+  });
+  touchpad.addEventListener('mousemove', (e) => {
+    if (isDragging) handlePointerEvent(e, 'move');
+  });
+  touchpad.addEventListener('mouseup', (e) => {
+    isDragging = false;
+    handlePointerEvent(e, 'stop');
+  });
+}
