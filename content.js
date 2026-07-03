@@ -12,7 +12,7 @@ let currentX, currentY;
 let ctx;
 let overlayCanvas;
 let spotlightOverlay;
-let remoteCursorX = null, remoteCursorY = null, showRemoteCursor = false;
+let remoteCursorEl = null;
 
 // Stroke Tracking for Save/Export and Redraw
 let strokes = [];
@@ -41,6 +41,17 @@ function initCanvas() {
   });
   document.body.appendChild(spotlightOverlay);
 
+  // Remote Cursor Element
+  remoteCursorEl = document.createElement('div');
+  remoteCursorEl.id = 'ast-remote-cursor';
+  Object.assign(remoteCursorEl.style, {
+    position: 'fixed', top: '0', left: '0', width: '12px', height: '12px', borderRadius: '50%',
+    backgroundColor: 'rgba(52, 152, 219, 0.8)', border: '2px solid white',
+    pointerEvents: 'none', zIndex: '1000000', display: 'none',
+    boxShadow: '0 0 4px rgba(0,0,0,0.3)', transform: 'translate(0px, 0px)'
+  });
+  document.body.appendChild(remoteCursorEl);
+
   resizeCanvas();
   
   // Setup Event Listeners
@@ -64,9 +75,11 @@ function resizeCanvas() {
 function removeCanvas() {
   document.getElementById('ast-overlay')?.remove();
   document.getElementById('ast-spotlight')?.remove();
+  document.getElementById('ast-remote-cursor')?.remove();
   overlayCanvas = null;
   ctx = null;
   spotlightOverlay = null;
+  remoteCursorEl = null;
 }
 
 // Draw logic
@@ -134,6 +147,12 @@ function stopDraw(e) {
     currentStroke.height = currentY - startY;
   } else if (currentTool === 'circle') {
     currentStroke.radius = Math.sqrt(Math.pow(currentX - startX, 2) + Math.pow(currentY - startY, 2));
+  } else if (currentTool === 'triangle') {
+    currentStroke.width = currentX - startX;
+    currentStroke.height = currentY - startY;
+  } else if (currentTool === 'icon') {
+    // Icon doesn't need dragging, we just drop it at startX/startY
+    currentStroke.size = currentSize * 8; 
   }
   
   if (currentStroke) {
@@ -182,6 +201,8 @@ function handleHotkeys(e) {
     case 'e': newTool = 'eraser'; break;
     case 'r': newTool = 'rect'; break;
     case 'c': newTool = 'circle'; break;
+    case 'a': newTool = 'triangle'; break;
+    case 'i': newTool = 'icon'; break;
     case 's': newTool = 'spotlight'; break;
     case 'l': newTool = 'laser'; break;
     case 't': newTool = 'text'; break;
@@ -251,22 +272,22 @@ function redrawAll() {
       ctx.beginPath();
       ctx.arc(stroke.points[0].x, stroke.points[0].y, stroke.radius, 0, 2 * Math.PI);
       ctx.stroke();
+    } else if (stroke.tool === 'triangle' && stroke.points.length > 0) {
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x + stroke.width / 2, stroke.points[0].y); // Top
+      ctx.lineTo(stroke.points[0].x, stroke.points[0].y + stroke.height); // Bottom Left
+      ctx.lineTo(stroke.points[0].x + stroke.width, stroke.points[0].y + stroke.height); // Bottom Right
+      ctx.closePath();
+      ctx.stroke();
+    } else if (stroke.tool === 'icon' && stroke.points.length > 0) {
+      ctx.font = `${stroke.size}px sans-serif`;
+      ctx.fillStyle = stroke.color;
+      ctx.fillText('⭐', stroke.points[0].x - stroke.size/2, stroke.points[0].y + stroke.size/3);
     } else if (stroke.tool === 'text') {
       ctx.font = `${stroke.size * 8}px "Segoe UI", sans-serif`;
       ctx.fillStyle = stroke.color;
       ctx.fillText(stroke.text, stroke.x, stroke.y);
     }
-  }
-  
-  if (showRemoteCursor && remoteCursorX !== null && remoteCursorY !== null && currentTool !== 'laser' && currentTool !== 'spotlight') {
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.beginPath();
-    ctx.arc(remoteCursorX, remoteCursorY, 6, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(52, 152, 219, 0.8)'; // A nice blue indicator
-    ctx.fill();
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'white';
-    ctx.stroke();
   }
 }
 
@@ -306,6 +327,12 @@ function exportSVG() {
       svg += `<rect x="${stroke.points[0].x}" y="${stroke.points[0].y}" width="${stroke.width}" height="${stroke.height}" fill="none" stroke="${stroke.color}" stroke-width="3"/>`;
     } else if (stroke.tool === 'circle') {
       svg += `<circle cx="${stroke.points[0].x}" cy="${stroke.points[0].y}" r="${stroke.radius}" fill="none" stroke="${stroke.color}" stroke-width="3"/>`;
+    } else if (stroke.tool === 'triangle') {
+      svg += `<polygon points="${stroke.points[0].x + stroke.width/2},${stroke.points[0].y} ${stroke.points[0].x},${stroke.points[0].y + stroke.height} ${stroke.points[0].x + stroke.width},${stroke.points[0].y + stroke.height}" fill="none" stroke="${stroke.color}" stroke-width="3"/>`;
+    } else if (stroke.tool === 'icon') {
+      svg += `<text x="${stroke.points[0].x - stroke.size/2}" y="${stroke.points[0].y + stroke.size/3}" font-size="${stroke.size}" fill="${stroke.color}">⭐</text>`;
+    } else if (stroke.tool === 'text') {
+      svg += `<text x="${stroke.x}" y="${stroke.y}" font-size="${stroke.size * 8}" font-family="Segoe UI, sans-serif" fill="${stroke.color}">${stroke.text}</text>`;
     }
   });
   
@@ -520,6 +547,8 @@ function createToolbar() {
           <button class="ast-tb-tool" data-tool="highlight" title="Highlighter (H)">🖍️</button>
           <button class="ast-tb-tool" data-tool="rect" title="Rectangle (R)">⬛</button>
           <button class="ast-tb-tool" data-tool="circle" title="Circle (C)">🔴</button>
+          <button class="ast-tb-tool" data-tool="triangle" title="Triangle (A)">🔺</button>
+          <button class="ast-tb-tool" data-tool="icon" title="Icon (I)">⭐</button>
           <button class="ast-tb-tool" data-tool="eraser" title="Eraser (E)">🧹</button>
           <button class="ast-tb-tool" data-tool="spotlight" title="Spotlight Mode (S)">🔦</button>
           <button class="ast-tb-tool" data-tool="laser" title="Laser Pointer (L)">🔴</button>
@@ -741,9 +770,10 @@ function handleRemoteData(data) {
     return;
   }
   
-  remoteCursorX = screenX;
-  remoteCursorY = screenY;
-  showRemoteCursor = true;
+  if (remoteCursorEl && currentTool !== 'laser' && currentTool !== 'spotlight') {
+    remoteCursorEl.style.display = 'block';
+    remoteCursorEl.style.transform = `translate(${screenX - 6}px, ${screenY - 6}px)`;
+  }
   
   if (data.type === 'start') {
     startDraw(synthEvent);
@@ -751,13 +781,13 @@ function handleRemoteData(data) {
     draw(synthEvent);
   } else if (data.type === 'stop') {
     stopDraw(synthEvent);
-    setTimeout(() => { showRemoteCursor = false; redrawAll(); }, 2000);
+    if (remoteCursorEl) remoteCursorEl.style.display = 'none';
   } else if (data.type === 'hover') {
     if (currentTool === 'laser' || currentTool === 'spotlight') {
+      if (remoteCursorEl) remoteCursorEl.style.display = 'none';
       draw(synthEvent);
-    } else {
-      redrawAll();
     }
+    // No redrawAll() needed here anymore! Flicker fixed.
   }
 }
 

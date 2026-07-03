@@ -124,13 +124,12 @@ function handlePointerEvent(e, type) {
   
   if (type === 'start') {
     touchpad.style.backgroundColor = '#2980b9'; // Darker blue when touching
-    
+  } else if (type === 'stop') {
+    touchpad.style.backgroundColor = '#34495e'; // Original color
     if (isTextTool) {
       hiddenTextInput.value = '';
       hiddenTextInput.focus();
     }
-  } else if (type === 'stop') {
-    touchpad.style.backgroundColor = '#34495e'; // Original color
   }
 
   const rect = touchpad.getBoundingClientRect();
@@ -159,6 +158,10 @@ function handleTouchEvent(e, type) {
     touchpad.style.backgroundColor = '#2980b9';
   } else if (type === 'stop') {
     touchpad.style.backgroundColor = '#34495e';
+    if (isTextTool) {
+      hiddenTextInput.value = '';
+      hiddenTextInput.focus();
+    }
   }
 
   const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null);
@@ -174,8 +177,6 @@ function handleTouchEvent(e, type) {
   const y = (touch.clientY - rect.top) / rect.height;
   
   if (isTextTool && type === 'start') {
-    hiddenTextInput.value = '';
-    hiddenTextInput.focus();
     if (conn && conn.open) conn.send({ type: 'textFocus', x, y });
     return;
   }
