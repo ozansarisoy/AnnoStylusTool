@@ -82,6 +82,10 @@
     }
     .setup-desc { margin-bottom: 5px; }
     .setup-hint { font-size: 0.8em; color: #bdc3c7; margin-top: 0; margin-bottom: 20px; text-align: center; }
+    #settings-toolbar { display: flex; justify-content: center; gap: 15px; padding: 10px; background: #2c3e50; align-items: center; }
+    #remoteColor { width: 40px; height: 40px; padding: 0; margin: 0; border-radius: 4px; cursor: pointer; }
+    #remoteSize { width: 150px; margin: 0; }
+    #hiddenTextInput { position: absolute; opacity: 0; pointer-events: none; }
   </style>
 </head>
 <body>
@@ -106,12 +110,12 @@
       <button class="tool-btn" data-tool="text" title="Text Tool">T</button>
       <button class="tool-btn clear-btn" data-tool="clear" title="Clear Canvas">🗑️</button>
     </div>
-    <div id="settings-toolbar" style="display: flex; justify-content: center; gap: 15px; padding: 10px; background: #2c3e50; align-items: center;">
-      <input type="color" id="remoteColor" value="#ff0000" style="width: 40px; height: 40px; padding: 0; margin: 0; border-radius: 4px; cursor: pointer;">
-      <input type="range" id="remoteSize" min="1" max="50" value="5" style="width: 150px; margin: 0;">
+    <div id="settings-toolbar">
+      <input type="color" id="remoteColor" value="#ff0000">
+      <input type="range" id="remoteSize" min="1" max="50" value="5">
     </div>
     <div id="touchpad">
-      <input type="text" id="hiddenTextInput" style="position: absolute; opacity: 0; pointer-events: none;" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+      <input type="text" id="hiddenTextInput" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
   </div>
 
