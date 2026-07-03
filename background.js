@@ -5,12 +5,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.action.onClicked.addListener((tab) => {
   if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://") || tab.url.startsWith("about:")) {
-    chrome.notifications.create({
-      type: 'basic',
-      iconUrl: 'icons/icon48.png',
-      title: 'Anno Stylus Tool',
-      message: 'Extension cannot run on this page. Please open a normal website to start drawing.'
-    });
+    chrome.tabs.create({ url: chrome.runtime.getURL('warning.html') });
   } else {
     chrome.tabs.sendMessage(tab.id, { action: 'toggleToolbar' }, (response) => {
       if (chrome.runtime.lastError) {
