@@ -64,10 +64,10 @@ if (idParam) {
   }
 }
 
-// Settings Handling
 const remoteColor = document.getElementById('remoteColor');
 const remoteSize = document.getElementById('remoteSize');
-const hiddenTextInput = document.getElementById('hiddenTextInput');
+const mobileTextInput = document.getElementById('mobileTextInput');
+const textInputContainer = document.getElementById('textInputContainer');
 
 remoteColor.addEventListener('input', (e) => {
   if (conn && conn.open) conn.send({ type: 'setting', color: e.target.value });
@@ -77,11 +77,11 @@ remoteSize.addEventListener('input', (e) => {
   if (conn && conn.open) conn.send({ type: 'setting', size: e.target.value });
 });
 
-hiddenTextInput.addEventListener('input', (e) => {
+mobileTextInput.addEventListener('input', (e) => {
   if (conn && conn.open) conn.send({ type: 'textInput', text: e.target.value });
 });
 
-hiddenTextInput.addEventListener('blur', (e) => {
+mobileTextInput.addEventListener('blur', (e) => {
   if (conn && conn.open) conn.send({ type: 'textBlur' });
 });
 
@@ -98,6 +98,16 @@ toolBtns.forEach(btn => {
       if (!b.classList.contains('clear-btn')) b.classList.remove('active');
     });
     btn.classList.add('active');
+    
+    // Toggle Text Input UI
+    if (tool === 'text') {
+      textInputContainer.style.display = 'flex';
+      mobileTextInput.value = '';
+    } else {
+      textInputContainer.style.display = 'none';
+      if (conn && conn.open) conn.send({ type: 'textBlur' });
+    }
+    
     if (conn && conn.open) {
       conn.send({ type: 'toolSelect', tool: tool });
     }
@@ -113,23 +123,12 @@ function sendDrawEvent(type, x, y, pointerType) {
 }
 
 function handlePointerEvent(e, type) {
-  // Check if Text tool is active
   const activeToolBtn = document.querySelector('.tool-btn.active');
   const isTextTool = activeToolBtn && activeToolBtn.dataset.tool === 'text';
 
-  // If text tool is active, don't prevent default on start so input can focus
+  // Prevent default scrolling unless it's text tool focusing
   if (!isTextTool) {
     try { e.preventDefault(); } catch(err){}
-  }
-  
-  if (type === 'start') {
-    touchpad.style.backgroundColor = '#2980b9'; // Darker blue when touching
-  } else if (type === 'stop') {
-    touchpad.style.backgroundColor = '#34495e'; // Original color
-    if (isTextTool) {
-      hiddenTextInput.value = '';
-      hiddenTextInput.focus();
-    }
   }
 
   const rect = touchpad.getBoundingClientRect();
@@ -137,6 +136,7 @@ function handlePointerEvent(e, type) {
   const y = (e.clientY - rect.top) / rect.height;
   
   if (isTextTool && type === 'start') {
+    mobileTextInput.value = '';
     if (conn && conn.open) conn.send({ type: 'textFocus', x, y });
     return;
   }
@@ -153,16 +153,6 @@ function handleTouchEvent(e, type) {
   if (!isTextTool) {
     try { e.preventDefault(); } catch(err){}
   }
-  
-  if (type === 'start') {
-    touchpad.style.backgroundColor = '#2980b9';
-  } else if (type === 'stop') {
-    touchpad.style.backgroundColor = '#34495e';
-    if (isTextTool) {
-      hiddenTextInput.value = '';
-      hiddenTextInput.focus();
-    }
-  }
 
   const touch = e.touches && e.touches.length > 0 ? e.touches[0] : (e.changedTouches ? e.changedTouches[0] : null);
   if (!touch && type !== 'stop') return;
@@ -177,6 +167,7 @@ function handleTouchEvent(e, type) {
   const y = (touch.clientY - rect.top) / rect.height;
   
   if (isTextTool && type === 'start') {
+    mobileTextInput.value = '';
     if (conn && conn.open) conn.send({ type: 'textFocus', x, y });
     return;
   }
