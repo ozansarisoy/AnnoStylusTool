@@ -38,52 +38,61 @@
     }
     button.connect-btn:active { transform: scale(0.95); }
     
-    #main-ui { display: none; flex-direction: column; height: 100%; }
+    #main-ui { display: none; position: relative; height: 100vh; width: 100vw; }
     
-    .glass-bar {
-      background: var(--glass-bg);
-      -webkit-backdrop-filter: blur(12px);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--glass-border);
-      padding: 10px;
+    #touchpad {
+      position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1;
+      background-color: transparent;
+    }
+
+    .dock-container {
+      position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 10; display: flex; flex-direction: column; align-items: center; gap: 10px;
+      width: 95%; max-width: 600px; pointer-events: none;
     }
     
-    #toolbar {
-      display: flex; gap: 8px; overflow-x: auto; white-space: nowrap;
-      padding: 12px 10px; align-items: center;
+    .dock {
+      pointer-events: auto; background: var(--glass-bg);
+      -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border); border-radius: 20px;
+      padding: 10px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
-    #toolbar::-webkit-scrollbar { display: none; }
+    
+    .tool-group {
+      display: flex; gap: 5px; background: rgba(0,0,0,0.2);
+      padding: 5px; border-radius: 15px;
+    }
     
     .tool-btn {
-      font-size: 20px; padding: 12px;
-      background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border);
-      border-radius: 12px; color: white; cursor: pointer; transition: 0.2s;
-      flex-shrink: 0;
+      font-size: 20px; padding: 10px;
+      background: transparent; border: none;
+      border-radius: 10px; color: white; cursor: pointer; transition: 0.2s;
     }
     .tool-btn.active {
-      background: rgba(52, 152, 219, 0.5);
-      border-color: rgba(52, 152, 219, 0.8);
+      background: rgba(52, 152, 219, 0.6);
       box-shadow: 0 0 10px rgba(52, 152, 219, 0.4);
     }
-    .tool-btn.action-btn { background: rgba(46, 204, 113, 0.3); }
-    .tool-btn.clear-btn { background: rgba(231, 76, 60, 0.3); }
+    .tool-btn.action-btn:active { background: rgba(46, 204, 113, 0.5); }
+    .tool-btn.clear-btn:active { background: rgba(231, 76, 60, 0.5); }
     
-    #settings-toolbar { display: flex; justify-content: center; gap: 15px; align-items: center; }
+    .dock-settings {
+      flex-wrap: nowrap; width: auto; border-radius: 15px; padding: 8px 15px;
+    }
+    
     #remoteColor { width: 36px; height: 36px; padding: 0; margin: 0; border-radius: 8px; border: none; cursor: pointer; background: transparent; }
     #remoteSize { flex: 1; max-width: 200px; margin: 0; accent-color: var(--accent); }
     
-    .input-container {
-      display: none; padding: 10px; gap: 10px; align-items: center;
-      background: rgba(0,0,0,0.4); border-bottom: 1px solid var(--glass-border);
+    .floating-input {
+      display: none; position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 10; padding: 10px; gap: 10px; align-items: center; width: 90%; max-width: 500px;
+      background: var(--glass-bg); -webkit-backdrop-filter: blur(15px); backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border); border-radius: 15px;
     }
-    .input-container input { flex: 1; margin: 0; text-align: left; }
-    .input-container button {
+    .floating-input input { flex: 1; margin: 0; text-align: left; }
+    .floating-input button {
       padding: 15px 20px; background: var(--accent); color: white; border: none;
       border-radius: 12px; font-weight: bold;
-    }
-    
-    #touchpad {
-      flex: 1; background-color: rgba(0, 0, 0, 0.2); display: block; width: 100%;
     }
     
     .setup-desc { margin-bottom: 5px; font-size: 1.1em; }
@@ -101,44 +110,55 @@
   </div>
   
   <div id="main-ui">
-    <div id="toolbar" class="glass-bar">
-      <!-- Drawing Tools -->
-      <button class="tool-btn active" data-tool="pen" title="Pen">🖊️</button>
-      <button class="tool-btn" data-tool="highlight" title="Highlighter">🖍️</button>
-      <button class="tool-btn" data-tool="rect" title="Rectangle">⬛</button>
-      <button class="tool-btn" data-tool="circle" title="Circle">🔴</button>
-      <button class="tool-btn" data-tool="triangle" title="Triangle">🔺</button>
-      <button class="tool-btn" data-tool="icon" title="Icon">⭐</button>
-      <button class="tool-btn" data-tool="eraser" title="Eraser">🧹</button>
-      <!-- Features -->
-      <button class="tool-btn" data-tool="text" title="Text Tool">T</button>
-      <button class="tool-btn" data-tool="pointer" title="Mouse Pointer">🖱️</button>
-      <button class="tool-btn" data-tool="url" title="Open URL">🌐</button>
-      <button class="tool-btn" data-tool="spotlight" title="Spotlight">🔦</button>
-      <button class="tool-btn" data-tool="laser" title="Laser Pointer">🔴</button>
-      <!-- Actions -->
-      <button class="tool-btn action-btn" data-action="cam" title="WebCam">📹</button>
-      <button class="tool-btn action-btn" data-action="redact" title="Auto Redact">🔒</button>
-      <button class="tool-btn action-btn" data-action="png" title="Export PNG">📷</button>
-      <button class="tool-btn action-btn" data-action="svg" title="Export SVG">🖼️</button>
-      <button class="tool-btn clear-btn" data-action="clear" title="Clear Canvas">🗑️</button>
-    </div>
-    
-    <div id="settings-toolbar" class="glass-bar">
-      <input type="color" id="remoteColor" value="#ff0000">
-      <input type="range" id="remoteSize" min="1" max="50" value="5">
-    </div>
-    
-    <div id="textInputContainer" class="input-container">
+    <canvas id="touchpad"></canvas>
+
+    <div id="textInputContainer" class="floating-input">
       <input type="text" id="mobileTextInput" placeholder="Tap screen to place cursor, then type..." autocomplete="off">
     </div>
     
-    <div id="urlInputContainer" class="input-container">
+    <div id="urlInputContainer" class="floating-input">
       <input type="text" id="mobileUrlInput" placeholder="Enter URL (e.g. wikipedia.org)" autocomplete="off">
       <button id="urlGoBtn">Go</button>
     </div>
-    
-    <canvas id="touchpad"></canvas>
+
+    <div class="dock-container">
+      <div id="toolbar" class="dock">
+        <!-- Drawing Tools -->
+        <div class="tool-group">
+          <button class="tool-btn active" data-tool="pen" title="Pen">🖊️</button>
+          <button class="tool-btn" data-tool="highlight" title="Highlighter">🖍️</button>
+          <button class="tool-btn" data-tool="eraser" title="Eraser">🧹</button>
+        </div>
+        <!-- Shapes -->
+        <div class="tool-group shapes">
+          <button class="tool-btn" data-tool="rect" title="Rectangle">⬛</button>
+          <button class="tool-btn" data-tool="circle" title="Circle">🔴</button>
+          <button class="tool-btn" data-tool="triangle" title="Triangle">🔺</button>
+          <button class="tool-btn" data-tool="icon" title="Icon">⭐</button>
+        </div>
+        <!-- Interactions -->
+        <div class="tool-group interactions">
+          <button class="tool-btn" data-tool="text" title="Text Tool">T</button>
+          <button class="tool-btn" data-tool="pointer" title="Mouse Pointer">🖱️</button>
+          <button class="tool-btn" data-tool="url" title="Open URL">🌐</button>
+          <button class="tool-btn" data-tool="spotlight" title="Spotlight">🔦</button>
+          <button class="tool-btn" data-tool="laser" title="Laser Pointer">🔴</button>
+        </div>
+        <!-- Actions -->
+        <div class="tool-group actions">
+          <button class="tool-btn action-btn" data-action="cam" title="WebCam">📹</button>
+          <button class="tool-btn action-btn" data-action="redact" title="Auto Redact">🔒</button>
+          <button class="tool-btn action-btn" data-action="png" title="Export PNG">📷</button>
+          <button class="tool-btn action-btn" data-action="svg" title="Export SVG">🖼️</button>
+          <button class="tool-btn clear-btn" data-action="clear" title="Clear Canvas">🗑️</button>
+        </div>
+      </div>
+      
+      <div id="settings-toolbar" class="dock dock-settings">
+        <input type="color" id="remoteColor" value="#ff0000">
+        <input type="range" id="remoteSize" min="1" max="50" value="5">
+      </div>
+    </div>
   </div>
 
   <script src="app.js?v=6"></script>
